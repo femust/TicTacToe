@@ -100,3 +100,16 @@ if __name__ == '__main__':
 
     if noWinnerYet:
         print('game ended in a draw')
+
+
+class Tree():
+    def __init__(self):
+        pass
+
+
+class State():
+    def __init__(self, id, parent, child):
+        self.id = id
+        self.parent = parent
+        self.child = child
+        self.value = 0.1
