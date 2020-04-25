@@ -61,14 +61,61 @@ def print_game_state(S):
     print(B)
 
 
+class Tree():
+    def __init__(self, root):
+        self.root = root
+        self.current_node = root
+        self.depth = 0
+        self.elements_in_given_depth = {self.depth: [root]}
+
+    def add_state(self, state):
+        node_to_append = State(state, self.current_node)
+
+        self.depth = self.depth + 1
+        self.elements_in_given_depth[self.depth] = [node_to_append]
+
+        self.current_node.children.append(node_to_append)
+        self.current_node = node_to_append
+
+    def pick(self):
+        self.current_node.generate_children()
+
+        self.depth = self.depth + 1
+        movement = self.current_node.children[0]
+        self.elements_in_given_depth[self.depth] = []
+        for child in self.current_node.children:
+            self.elements_in_given_depth[self.depth].append(child)
+            if (child.value > movement.value):
+                movement = child
+        return child.id
+
+
+class State():
+    def __init__(self, id, parent):
+        self.id = id
+        self.parent = parent
+        self.children = []
+        self.value = 0.1
+
+    def generate_children(self, p=-1):
+        xs, ys = np.where(self.id == 0)
+        for x, y in zip(xs, ys):
+            grid = np.copy(self.id)
+            grid[x, y] = p
+            self.children.append(State(grid, self.id))
+        for child in self.children:
+            print(child.id)
+
+
 if __name__ == '__main__':
     # initialize an empty tic tac toe board
     gameState = np.zeros((3, 3), dtype=int)
-
+    init_state = State(gameState, None)
+    tree = Tree(init_state)
     # initialize the player who moves first (either +1 or -1)
     player = 1
 
-    HUMAN_PLAYER = 1  # assumption that the player has 1 symbol
+    HUMAN_PLAYER = 1  # const, assumption that the player has 1 symbol
     # initialize a move counter
     mvcntr = 1
 
@@ -83,8 +130,11 @@ if __name__ == '__main__':
         # let current player move at random
         if (player == HUMAN_PLAYER):
             gameState = human_move(gameState, player)
+            tree.add_state(gameState)
         else:
-            gameState = move_at_random(gameState, player)
+            #gameState = move_at_random(gameState, player)
+            gameState = tree.pick()
+            pass
 
         # print current game state
         print_game_state(gameState)
@@ -100,16 +150,3 @@ if __name__ == '__main__':
 
     if noWinnerYet:
         print('game ended in a draw')
-
-
-class Tree():
-    def __init__(self):
-        pass
-
-
-class State():
-    def __init__(self, id, parent, child):
-        self.id = id
-        self.parent = parent
-        self.child = child
-        self.value = 0.1
