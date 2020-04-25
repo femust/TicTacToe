@@ -89,6 +89,22 @@ class Bot():
                 movement = child
         return child.id
 
+    def learn(self, who_won):
+        if (who_won == 1 or who_won == 0):
+            self.current_node.value = 0
+            self.update(self.current_node)
+        if (who_won == -1):
+            self.current_node.value = 1
+            self.update(self.current_node)
+
+    def update(self, from_node):
+        while (from_node != self.root):
+            from_node.parent.value = from_node.parent.value + \
+                0.2 * (from_node.value - from_node.parent.value)
+
+    def reset(self):
+        self.current_node = self.root
+
 
 class State():
     def __init__(self, id, parent):
@@ -112,41 +128,48 @@ if __name__ == '__main__':
     gameState = np.zeros((3, 3), dtype=int)
     init_state = State(gameState, None)
     bot = Bot(init_state)
-    # initialize the player who moves first (either +1 or -1)
-    player = 1
-
     HUMAN_PLAYER = 1  # const, assumption that the player has 1 symbol
-    # initialize a move counter
-    mvcntr = 1
 
-    # initialize a flag that indicates whetehr or not game has ended
-    noWinnerYet = True
+    for i in np.arange(10):
+        print("Bot vs human, game number: " + str(i))
+        gameState = np.zeros((3, 3), dtype=int)
+        # initialize the player who moves first (either +1 or -1)
+        player = 1
 
-    while move_still_possible(gameState) and noWinnerYet:
-        # turn current player number into player symbol
-        name = symbols[player]
-        print('%s moves' % name)
+        # initialize a move counter
+        mvcntr = 1
 
-        # let current player move at random
-        if (player == HUMAN_PLAYER):
-            gameState = human_move(gameState, player)
-            bot.add_state(gameState)
-        else:
-            #gameState = move_at_random(gameState, player)
-            gameState = bot.pick()
-            pass
+        # initialize a flag that indicates whetehr or not game has ended
+        noWinnerYet = True
 
-        # print current game state
-        print_game_state(gameState)
+        while move_still_possible(gameState) and noWinnerYet:
+            # turn current player number into player symbol
+            name = symbols[player]
+            print('%s moves' % name)
 
-        # evaluate current game state
-        if move_was_winning_move(gameState, player):
-            print('player %s wins after %d moves' % (name, mvcntr))
-            noWinnerYet = False
+            # let current player move at random
+            if (player == HUMAN_PLAYER):
+                gameState = human_move(gameState, player)
+                bot.add_state(gameState)
+            else:
+                #gameState = move_at_random(gameState, player)
+                gameState = bot.pick()
+                pass
 
-        # switch current player and increase move counter
-        player *= -1
-        mvcntr += 1
+            # print current game state
+            print_game_state(gameState)
 
-    if noWinnerYet:
-        print('game ended in a draw')
+            # evaluate current game state
+            if move_was_winning_move(gameState, player):
+                print('player %s wins after %d moves' % (name, mvcntr))
+                won = player
+
+            # switch current player and increase move counter
+            player *= -1
+            mvcntr += 1
+
+        if noWinnerYet:
+            print('game ended in a draw')
+            won = 0
+
+        bot.learn(won)
