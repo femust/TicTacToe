@@ -61,7 +61,7 @@ def print_game_state(S):
     print(B)
 
 
-class Tree():
+class Bot():
     def __init__(self, root):
         self.root = root
         self.current_node = root
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # initialize an empty tic tac toe board
     gameState = np.zeros((3, 3), dtype=int)
     init_state = State(gameState, None)
-    tree = Tree(init_state)
+    bot = Bot(init_state)
     # initialize the player who moves first (either +1 or -1)
     player = 1
 
@@ -130,10 +130,10 @@ if __name__ == '__main__':
         # let current player move at random
         if (player == HUMAN_PLAYER):
             gameState = human_move(gameState, player)
-            tree.add_state(gameState)
+            bot.add_state(gameState)
         else:
             #gameState = move_at_random(gameState, player)
-            gameState = tree.pick()
+            gameState = bot.pick()
             pass
 
         # print current game state
