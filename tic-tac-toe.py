@@ -6,16 +6,6 @@ def move_still_possible(S):
     return not (S[S == 0].size == 0)
 
 
-def move_at_random(S, p):
-    xs, ys = np.where(S == 0)
-
-    i = np.random.permutation(np.arange(xs.size))[0]
-
-    S[xs[i], ys[i]] = p
-
-    return S
-
-
 def human_move(S, p):
     xs, ys = np.where(S == 0)
     correct_move = False
@@ -66,68 +56,135 @@ class Bot():
         self.root = root
         self.current_node = root
         self.depth = 0
-        self.elements_in_given_depth = {self.depth: [root]}
+        self.path = []
+        self.path.append(root)
+        self.states_in_given_depth = dict()
+        for i in np.arange(9):
+            self.states_in_given_depth[i] = []
 
-    def add_state(self, state):
-        node_to_append = State(state, self.current_node)
+    def move_at_random(self, S):
+        xs, ys = np.where(S == 0)
+        i = np.random.permutation(np.arange(xs.size))[0]
+        S[xs[i], ys[i]] = -1
+        return S
 
+    def move_greedy(self, S):
         self.depth = self.depth + 1
-        self.elements_in_given_depth[self.depth] = [node_to_append]
+        # node_to_append = State(S, self.current_node)
+        # is_node_to_append_in_given_depth = False
+        # for state_in_give_depth in self.states_in_given_depth[self.depth]:
+        #     if np.all(node_to_append.id, state_in_give_depth.id):
+        #         is_node_to_append_in_given_depth = True
 
-        self.current_node.children.append(node_to_append)
-        self.current_node = node_to_append
+        # if (not is_node_to_append_in_given_depth):
+        #     self.states_in_given_depth[self.depth].append(node_to_append)
 
-    def pick(self):
-        self.current_node.generate_children()
-
+        # self.current_node = node_to_append
+        # self.path.append(self.current_node)
+        # take the action
         self.depth = self.depth + 1
-        movement = self.current_node.children[0]
-        self.elements_in_given_depth[self.depth] = []
-        for child in self.current_node.children:
-            if child not in self.elements_in_given_depth[self.depth]:
-                self.elements_in_given_depth[self.depth].append(child)
-            if (child.value > movement.value):
-                movement = child
-        return child.id
+        possible_id_states = self.generate_possible_id_states(S)
+        for possible_id_state in possible_id_states:
+            is_possible_state_in_depth = False
+            for state_in_given_depth in self.states_in_given_depth[self.depth]:
+                if np.all(possible_id_state == state_in_given_depth.id):
+                    is_possible_state_in_depth = True
+                    break
+            if(not is_possible_state_in_depth):
+                self.states_in_given_depth[self.depth].append(
+                    State(possible_id_state))
+
+        state_in_given_depth = None
+
+        movement = self.states_in_given_depth[self.depth][0]
+        first_element = True
+        for state_in_given_depth in self.states_in_given_depth[self.depth]:
+            to_consider = False
+            for possible_id_state in possible_id_states:
+                if (np.all(possible_id_state == state_in_given_depth.id)):
+                    to_consider = True
+                    if (first_element):
+                        movement = state_in_given_depth
+                        first_element = False
+            if (to_consider):
+                if (movement.value < state_in_given_depth.value):
+                    movement = state_in_given_depth
+        self.path.append(movement)
+        S = np.copy(movement.id)
+        return S
+
+#    def add_state(self, state):
+#         node_to_append = State(state, self.current_node)
+
+#         self.depth = self.depth + 1
+
+#         self.states_in_given_depth[self.depth] = [node_to_append]
+
+#         self.current_node.children.append(node_to_append)
+#         self.current_node = node_to_append
+
+#     def pick(self):
+#         self.current_node.generate_children()
+
+#         self.depth = self.depth + 1
+#         movement = self.current_node.children[0]
+#         self.states_in_given_depth[self.depth] = []
+#         for child in self.current_node.children:
+#             if child not in self.states_in_given_depth[self.depth]:
+#                 self.states_in_given_depth[self.depth].append(child)
+#             if (child.value > movement.value):
+#                 movement = child
+#         return child.id
 
     def learn(self, who_won):
         if (who_won == 1 or who_won == 0):
-            self.current_node.value = 0
-            self.update(self.current_node)
+            self.path[-1].value = 0
+            self.update()
         if (who_won == -1):
-            self.current_node.value = 1
-            self.update(self.current_node)
+            self.path[-1].value = 1
+            self.update()
 
-    def update(self, from_node):
-        while (from_node != self.root):
-            from_node.parent.value = from_node.parent.value + \
-                0.2 * (from_node.value - from_node.parent.value)
+    def update(self):
+        while (len(self.path) is not 2):
+            s_prim = self.path.pop()
+            s = self.path[-1]
+            s.value = s.value + 0.2 * (s_prim.value - s.value)
 
     def reset(self):
-        self.current_node = self.root
+        self.path = []
+        self.path.append(self.root)
+        self.depth = 0
+
+    def generate_possible_id_states(self, S):
+        possible_states = []
+        xs, ys = np.where(S == 0)
+        for x, y in zip(xs, ys):
+            grid = np.copy(S)
+            grid[x, y] = -1
+            possible_states.append(grid)
+        return possible_states
 
 
 class State():
-    def __init__(self, id, parent):
+    def __init__(self, id):
         self.id = id
-        self.parent = parent
         self.children = []
         self.value = 0.1
 
-    def generate_children(self, p=-1):
-        xs, ys = np.where(self.id == 0)
-        for x, y in zip(xs, ys):
-            grid = np.copy(self.id)
-            grid[x, y] = p
-            self.children.append(State(grid, self.id))
-        for child in self.children:
-            print(child.id)
+    # def generate_possible_id_states(self, p=-1):
+    #     possible_states = []
+    #     xs, ys = np.where(self.id == 0)
+    #     for x, y in zip(xs, ys):
+    #         grid = np.copy(self.id)
+    #         grid[x, y] = p
+    #         possible_states.append(grid)
+    #     return possible_states
 
 
 if __name__ == '__main__':
     # initialize an empty tic tac toe board
     gameState = np.zeros((3, 3), dtype=int)
-    init_state = State(gameState, None)
+    init_state = State(gameState)
     bot = Bot(init_state)
     HUMAN_PLAYER = 1  # const, assumption that the player has 1 symbol
 
@@ -151,10 +208,9 @@ if __name__ == '__main__':
             # let current player move at random
             if (player == HUMAN_PLAYER):
                 gameState = human_move(gameState, player)
-                bot.add_state(gameState)
             else:
-                #gameState = move_at_random(gameState, player)
-                gameState = bot.pick()
+                # gameState = move_at_random(gameState, player)
+                gameState = bot.move_greedy(gameState)
                 pass
 
             # print current game state
@@ -163,6 +219,7 @@ if __name__ == '__main__':
             # evaluate current game state
             if move_was_winning_move(gameState, player):
                 print('player %s wins after %d moves' % (name, mvcntr))
+                noWinnerYet = False
                 won = player
 
             # switch current player and increase move counter
@@ -174,3 +231,4 @@ if __name__ == '__main__':
             won = 0
 
         bot.learn(won)
+        bot.reset()
