@@ -84,7 +84,8 @@ class Bot():
         movement = self.current_node.children[0]
         self.elements_in_given_depth[self.depth] = []
         for child in self.current_node.children:
-            self.elements_in_given_depth[self.depth].append(child)
+            if child not in self.elements_in_given_depth[self.depth]:
+                self.elements_in_given_depth[self.depth].append(child)
             if (child.value > movement.value):
                 movement = child
         return child.id
