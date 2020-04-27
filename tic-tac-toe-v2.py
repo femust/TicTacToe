@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 
@@ -188,15 +189,18 @@ if __name__ == '__main__':
 
     player1 = Player("random", 1)
     player2 = Player("ai", -1)
+    player1_loosing_curve = []
+    player2_learning_curve = []
+    drawing_curve = []
 
-    number_of_games = 1000
+    number_of_games = 10000
     player1_wins = 0
     player2_wins = 0
     draws = 0
 
     for i in np.arange(1, number_of_games+1):
         # initialize an empty tic tac toe board
-        print("Bot vs human, game number: " + str(i))
+        #print("Bot vs human, game number: " + str(i))
         gameState = np.zeros((3, 3), dtype=int)
         noWinnerYet = True
         player = 1
@@ -217,17 +221,17 @@ if __name__ == '__main__':
 
             # evaluate current game state
             if move_was_winning_move(gameState, player):
-                print('player %s wins after %d moves' % (name, mvcntr))
+                #print('player %s wins after %d moves' % (name, mvcntr))
                 noWinnerYet = False
                 who_won = player
-                print_game_state(gameState)
+                # print_game_state(gameState)
                 break
             # switch current player and increase move counter
             player *= -1
             mvcntr += 1
 
         if noWinnerYet:
-            print('game ended in a draw')
+            #print('game ended in a draw')
             who_won = 0
 
         if (player2.type == "ai"):
@@ -245,6 +249,20 @@ if __name__ == '__main__':
             print("player 1: " + str(player1_wins / 100))
             print("player 2: " + str(player2_wins / 100))
             print("draws: " + str(draws / 100))
+            player1_loosing_curve.append(player1_wins / 100)
+            player2_learning_curve.append(player2_wins / 100)
+            drawing_curve.append(draws / 100)
             player1_wins = 0
             player2_wins = 0
             draws = 0
+plt.plot(player1_loosing_curve)
+plt.title("Player 1 curve")
+plt.show()
+
+plt.title("Player 2 - AI curve")
+plt.plot(player2_learning_curve)
+plt.show()
+
+plt.title("Drawing curve")
+plt.plot(drawing_curve)
+plt.show()
