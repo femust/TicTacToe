@@ -126,6 +126,24 @@ class Bot():
             possible_states.append(self.encode_state(grid))
         return possible_states
 
+    def learn(self, who_won):
+        if (who_won == 1 or who_won == 0):
+            self.path[-1].value = 0
+        if (who_won == -1):
+            self.path[-1].value = 1
+        self.update()
+
+    def update(self):
+        while (len(self.path) is not 1):
+            s_prim = self.path[-1]
+            s = self.path[-2]
+            s.value = s.value + 0.2 * (s_prim.value - s.value)
+            self.path.pop()
+
+    def reset_current_game(self):
+        self.path = []
+        self.depth = 0
+
 
 class State():
     def __init__(self, id):
@@ -168,10 +186,15 @@ if __name__ == '__main__':
         if move_was_winning_move(gameState, player):
             print('player %s wins after %d moves' % (name, mvcntr))
             noWinnerYet = False
-
+            who_won = player
+            break
         # switch current player and increase move counter
         player *= -1
         mvcntr += 1
 
     if noWinnerYet:
         print('game ended in a draw')
+
+if (player2.type == "ai"):
+    player2.bot.learn(who_won)
+    player2.bot.reset_current_game()
