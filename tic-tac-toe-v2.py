@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import numpy as np
+import random
 
 
 def move_still_possible(S):
@@ -82,6 +83,7 @@ class Bot():
         self.depth = 0
         self.path = []
         self.states_in_given_depth_history = dict()
+        self.be_explorer = False
         for i in np.arange(9):
             self.states_in_given_depth_history[i] = []
 
@@ -98,24 +100,44 @@ class Bot():
 
         moves_to_consider = []
         for possible_state in possible_states:
-            if possible_state in self.states_in_given_depth_history[self.depth]:
-                moves_to_consider.append(
-                    self.states_in_given_depth_history[self.depth].index(possible_state))
+            is_in_history, state = self.check_is_in_history(possible_state)
+            if is_in_history:
+                moves_to_consider.append(state)
             else:
                 append_state = State(possible_state)
                 self.states_in_given_depth_history[self.depth].append(
                     append_state)
                 moves_to_consider.append(append_state)
 
-        movement = moves_to_consider[0]
-
-        for move in moves_to_consider:
-            if (movement.value < move.value):
-                movement = move
+        if (self.be_explorer):
+            explore = self.is_time_for_exploration()
+            if (explore):
+                movement = random.choice(moves_to_consider)
+            else:
+                movement = self.find_the_best_move(moves_to_consider)
+        else:
+            movement = self.find_the_best_move(moves_to_consider)
 
         self.path.append(movement)
 
         return self.decode_state(movement.id)
+
+    def find_the_best_move(self, moves_to_consider):
+        movement = moves_to_consider[0]
+        for move in moves_to_consider:
+            if (movement.value < move.value):
+                movement = move
+        return movement
+
+    def check_is_in_history(self, possible_state):
+        is_in_history = False
+        state_out = None
+        for state in self.states_in_given_depth_history[self.depth]:
+            if (possible_state == state.id):
+                is_in_history = True
+                state_out = state
+                break
+        return is_in_history, state_out
 
     def generate_possible_id_states(self, S):
         possible_states = []
@@ -144,6 +166,13 @@ class Bot():
         self.path = []
         self.depth = 0
 
+    def is_time_for_exploration(self):
+        do_random = False
+        dice = np.random.permutation(np.arange(10))[0]
+        if (dice == 9):
+            do_random = True
+        return do_random
+
 
 class State():
     def __init__(self, id):
@@ -152,49 +181,70 @@ class State():
 
 
 if __name__ == '__main__':
-    # initialize an empty tic tac toe board
-    gameState = np.zeros((3, 3), dtype=int)
-
-    # initialize the player who moves first (either +1 or -1)
-    player = 1
-
     HUMAN_PLAYER = 1  # assumption that the player has 1 symbol
     # initialize a move counter
-    mvcntr = 1
 
     # initialize a flag that indicates whetehr or not game has ended
-    noWinnerYet = True
 
-    player1 = Player("manual", 1)
+    player1 = Player("random", 1)
     player2 = Player("ai", -1)
 
-    while move_still_possible(gameState) and noWinnerYet:
-        # turn current player number into player symbol
-        name = symbols[player]
-        print('%s moves' % name)
+    number_of_games = 1000
+    player1_wins = 0
+    player2_wins = 0
+    draws = 0
 
-        # let current player move at random
-        if (player == HUMAN_PLAYER):
-            gameState = player1.make_move(gameState)
-        else:
-            gameState = player2.make_move(gameState)
+    for i in np.arange(1, number_of_games+1):
+        # initialize an empty tic tac toe board
+        print("Bot vs human, game number: " + str(i))
+        gameState = np.zeros((3, 3), dtype=int)
+        noWinnerYet = True
+        player = 1
+        mvcntr = 1
 
-        # print current game state
-        print_game_state(gameState)
+        while move_still_possible(gameState) and noWinnerYet:
+            # turn current player number into player symbol
+            name = symbols[player]
+            #print('%s moves' % name)
 
-        # evaluate current game state
-        if move_was_winning_move(gameState, player):
-            print('player %s wins after %d moves' % (name, mvcntr))
-            noWinnerYet = False
-            who_won = player
-            break
-        # switch current player and increase move counter
-        player *= -1
-        mvcntr += 1
+            # print current game state
+            # print_game_state(gameState)
+            # let current player move at random
+            if (player == HUMAN_PLAYER):
+                gameState = player1.make_move(gameState)
+            else:
+                gameState = player2.make_move(gameState)
 
-    if noWinnerYet:
-        print('game ended in a draw')
+            # evaluate current game state
+            if move_was_winning_move(gameState, player):
+                print('player %s wins after %d moves' % (name, mvcntr))
+                noWinnerYet = False
+                who_won = player
+                print_game_state(gameState)
+                break
+            # switch current player and increase move counter
+            player *= -1
+            mvcntr += 1
 
-if (player2.type == "ai"):
-    player2.bot.learn(who_won)
-    player2.bot.reset_current_game()
+        if noWinnerYet:
+            print('game ended in a draw')
+            who_won = 0
+
+        if (player2.type == "ai"):
+            player2.bot.learn(who_won)
+            player2.bot.reset_current_game()
+
+        if (who_won == 1):
+            player1_wins = player1_wins + 1
+        if (who_won == -1):
+            player2_wins = player2_wins + 1
+        if (who_won == 0):
+            draws = draws + 1
+
+        if (i % 100 == 0):
+            print("player 1: " + str(player1_wins / 100))
+            print("player 2: " + str(player2_wins / 100))
+            print("draws: " + str(draws / 100))
+            player1_wins = 0
+            player2_wins = 0
+            draws = 0
